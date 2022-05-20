@@ -108,15 +108,15 @@ class canvasDust {
 }
 
 class indexs {
-  headerLink: NodeList
-  tocLink: NodeList = document.querySelectorAll('.toc-link')
+  headerLink: HTMLCollection
+  tocLink: HTMLCollection
   postContent: HTMLElement | null
   index: Array<number> = []
-  totop: HTMLElement = document.querySelector('#to-top')
+  totop: HTMLElement = document.getElementById('to-top')
   scrollID: number = null
   scrolling: number = 0
 
-  private setItem(item: HTMLElement) {
+  private setItem(item: Element) {
     item.classList.add('active')
     let $parent = item.parentElement, brother = $parent.children
     for (let i = 0; i < brother.length; i++) {
@@ -134,20 +134,25 @@ class indexs {
   }
 
   private reset() {
-    let tocs = document.querySelectorAll('#toc-div .active')
-    let tocTree = document.querySelectorAll('#toc-div .has-active')
-    tocs.forEach((item)=>{
+    let tocs = document.getElementsByClassName('active')
+    let tocTree = document.getElementsByClassName('has-active')
+    for (; tocs.length;) {
+      const item = tocs.item(0) as HTMLElement
       item.classList.remove('active')
-    })
-    tocTree.forEach((item)=>{
+    }
+    for (; tocTree.length;) {
+      const item = tocTree.item(0) as HTMLElement
       item.classList.remove('has-active')
-    })
+    }
   }
 
   private modifyIndex() {
-    this.headerLink.forEach((item)=>{
-      this.index.push((item as HTMLElement).getBoundingClientRect().top)
-    })
+    for (let i = 0; i < this.headerLink.length; i++) {
+      const link = this.headerLink.item(i) as HTMLElement
+      if (link) {
+        this.index.push(link.getBoundingClientRect().top)
+      }
+    }
     this.reset()
     for (let i = 0; i < this.tocLink.length; ++i) {
       const item = this.tocLink.item(i) as HTMLElement
@@ -161,45 +166,44 @@ class indexs {
 
   private scrolltop() {
     window.scroll({top: 0,left: 0,behavior: 'smooth'});
-    (document.querySelector('#to-top') as HTMLElement).style.opacity = '0'
-    setTimeout(()=> this.totop.style.display = 'none', 300)
+    document.getElementById('to-top').style.opacity = '0';
   }
 
   constructor() {
+    this.headerLink = document.getElementsByClassName('headerlink')
+    this.tocLink = document.getElementsByClassName('toc-link')
+    this.postContent = document.getElementById('post-content')
+    const totop = document.getElementById('to-top')
+    if (totop != null)
+      totop.style.opacity = '0';
     if (this.tocLink.length > 0) {
-      this.setItem(this.tocLink.item(0) as HTMLElement)
-    }
-    document.addEventListener('scroll', ()=>{
-      this.tocLink = document.querySelectorAll('.toc-link')
-      if (this.tocLink.length > 0) {
-        this.headerLink = document.querySelectorAll('.headerlink')
-        this.postContent = document.querySelector('#post-content')
-        const totop = document.querySelector('#to-top')
+      this.setItem(this.tocLink.item(0))
+      document.addEventListener('scroll', ()=>{
         ++this.scrolling
-        if (this.scrollID == null && this.tocLink.length > 0) {
+        if (this.scrollID == null) {
           this.scrollID = setInterval(this.modifyIndex.bind(this), 50)
         }
         setTimeout(()=>{
           if (--this.scrolling == 0) {
             clearInterval(this.scrollID)
             this.scrollID = null
-            const totop: HTMLElement = document.querySelector('#to-top')
+            const totop = document.getElementById('to-top')
             if (this.totop !== null
-              && document.querySelector('#post-title').getBoundingClientRect().top < -200) {
-              totop.style.display = ''
-              setTimeout(()=> totop.style.opacity = '1', 300)
+              && document.getElementById('post-title').getBoundingClientRect().top < -200) {
+              totop.style.opacity = '1';
             } else {
-              totop.style.opacity = '0'
-              setTimeout(()=> totop.style.display = 'none', 300)
+              totop.style.opacity = '0';
             }
           }
         }, 200);
-      }
-    }, {passive: true})
+      }, {passive: true})
+    }
   }
 }
 
 class codes {
+
+
   private reverse(item: Element, s0: string, s1: string) {
     const block = item.parentElement
     if (block.classList.contains(s0)){
@@ -212,7 +216,7 @@ class codes {
   }
 
   private doAsMermaid(item: Element) {
-    let Amermaid = item.querySelector('.mermaid') as HTMLElement
+    let Amermaid = item.getElementsByClassName('mermaid').item(0) as HTMLElement
     item.outerHTML = '<div class="highlight mermaid">' + Amermaid.innerText + '</div>'
   }
 
@@ -223,8 +227,7 @@ class codes {
   }
 
   private doAsCode(item: Element): void {
-    const codeType = item.classList[1],
-          lineCount = item.querySelector('.gutter').children[0].childElementCount >> 1
+    const codeType = item.classList[1], lineCount= item.getElementsByClassName('gutter').item(0).children[0].childElementCount >> 1
     item.classList.add(lineCount < 16 ? 'open' : 'fold')
     item.innerHTML=
     '<span class="code-header"><span class="code-title">\
@@ -236,13 +239,13 @@ class codes {
         </span>\
     </span></span>\
     <div class="code-box">' + item.innerHTML + '</div>'
-    item.querySelector('.code-copy').addEventListener('click', (click : Event)=>{
+    item.getElementsByClassName('code-copy').item(0).addEventListener('click', (click : MouseEvent)=>{
       const button = click.target as HTMLElement
-      navigator.clipboard.writeText(item.querySelector('code').innerText)
+      navigator.clipboard.writeText(item.getElementsByTagName('code').item(0).innerText)
       button.classList.add('copied')
       setTimeout(()=> button.classList.remove('copied'), 1200)
     })
-    item.querySelector('.code-header').addEventListener('click', (click : Event)=>{
+    item.getElementsByClassName('code-header').item(0).addEventListener('click', (click : MouseEvent)=>{
       if (!(click.target as HTMLElement).classList.contains('code-copy')){
         this.reverse(click.currentTarget as HTMLElement, 'open', 'fold')
       }
@@ -250,21 +253,20 @@ class codes {
   }
 
   private findCode(): void{
-    let codeBlocks = document.querySelectorAll('.highlight')
-    if (codeBlocks !== null) {
-      codeBlocks.forEach((item)=>{
-        if (!item.classList.contains('mermaid') && item.querySelector('.code-header') === null) {
-          if (item.querySelector('.mermaid') !== null) {
-            this.doAsMermaid(item)
-          } else {
-            this.doAsCode(item)
-          }
-        }
-      })
+    let codeBlocks = document.getElementsByClassName('highlight')
+    for (let i = 0; i < codeBlocks.length; i++) {
+      const item = codeBlocks.item(i) as HTMLElement
+      if (item.getElementsByClassName('mermaid').length > 0) {
+        this.doAsMermaid(item)
+      } else {
+        this.doAsCode(item)
+      }
     }
   }
 
-  constructor() {}
+  constructor() {
+    this.findCode()
+  }
 }
 
 class cursors {
@@ -272,36 +274,41 @@ class cursors {
   first: boolean = true
   outer = document.getElementById('cursor-outer').style
   effecter = document.getElementById('cursor-effect').style
-  scale: number = 0
+  scale: number
   opacity: number = 0
-  last: number = 0
-  moveIng: boolean = false
-  fadeIng: boolean = false
-  attention: string = "a,input,button,.admonition,.code-header,.gt-user-inner,.gt-header-textarea,.navBtnIcon"
+  ishead: boolean = true
+  moveEventID: number = null
+  fadeEventID: number = null
 
-  private move(timestamp: number): void {
+  private move(): void {
     if (this.now !== undefined) {
       let SX = this.outer.left, SY = this.outer.top
       let preX = Number(SX.substring(0, SX.length - 2)), preY = Number(SY.substring(0, SY.length - 2))
-      let delX = (this.now.x - preX) * 0.3, delY = (this.now.y - preY) * 0.3
-      preX += delX
-      preY += delY
-      this.outer.left = preX.toFixed(2) + 'px'
-      this.outer.top = preY.toFixed(2) + 'px'
-      if (Math.abs(delX) > 0.2 || Math.abs(delY) > 0.2) {
-        while(timestamp - this.last < 10)
-        this.last = timestamp
-        window.requestAnimationFrame(this.move.bind(this))
+      let nxtX = this.now.x, nxtY = this.now.y
+      let delX = (nxtX - preX) / 13, delY = (nxtY - preY) / 13
+      let equal = true
+      if (Math.abs(delX) >= 0.1) {
+        this.outer.left = String(preX + delX) + 'px'
+        equal = false
       } else {
-        this.moveIng = false
+        this.outer.left = String(nxtX) + 'px'
+      }
+      if (Math.abs(delY) >= 0.1) {
+        this.outer.top = String(preY + delY) + 'px'
+        equal = false
+      } else {
+        this.outer.top = String(nxtY) + 'px'
+      }
+      if (equal) {
+        clearInterval(this.moveEventID)
+        this.moveEventID = null
       }
     }
   }
 
-  private reset(mouse: MouseEvent): void {
-    if (!this.moveIng) {
-      this.moveIng = true
-      window.requestAnimationFrame(this.move.bind(this))
+  private reset(mouse): void {
+    if (this.moveEventID === null) {
+      this.moveEventID = window.setInterval(this.move.bind(this), 1)
     }
     this.now = mouse
     if (this.first) {
@@ -311,21 +318,29 @@ class cursors {
     }
   }
 
-  private Aeffect(mouse: MouseEvent): void {
-    if (this.fadeIng == false) {
-      let a = this
-      this.fadeIng = true
+  private fadeOut(): void {
+    if (this.opacity > 0) {
+      let delta = this.opacity * 0.11
+      if (delta < 0.001) {
+        delta = this.opacity
+      }
+      this.effecter.transform = 'translate(-50%, -50%) scale(' + String(this.scale += delta) + ')'
+      this.effecter.opacity = String((this.opacity -= delta))
+    } else {
+      clearInterval(this.fadeEventID)
+      this.fadeEventID = null
+    }
+  }
+
+  private Aeffect(mouse): void {
+    if (this.fadeEventID === null) {
+      this.fadeEventID = window.setInterval(this.fadeOut.bind(this), 10)
       this.effecter.left = String(mouse.x) + 'px'
       this.effecter.top = String(mouse.y) + 'px'
-      this.effecter.transition = 'transform .5s cubic-bezier(0.22, 0.61, 0.21, 1), opacity .5s cubic-bezier(0.22, 0.61, 0.21, 1)'
-      this.effecter.transform = 'translate(-50%, -50%) scale(1)'
-      this.effecter.opacity = '0'
-      setTimeout(()=>{
-        this.fadeIng = false
-        this.effecter.transition = ''
-        this.effecter.transform = 'translate(-50%, -50%) scale(0)'
-        this.effecter.opacity = '1'
-      }, 500)
+      this.effecter.transform = 'translate(-50%, -50%) scale(0)'
+      this.effecter.opacity = '1'
+      this.scale = 0
+      this.opacity = 1
     }
   }
 
@@ -341,81 +356,35 @@ class cursors {
     this.outer.background = "unset"
   }
 
-  private pushHolder(items: NodeList): void {
-    items.forEach((item)=>{
-      if (!(item as HTMLElement).classList.contains('is--active')) {
-        item.addEventListener('mouseover',()=> this.hold(), {passive: true})
-        item.addEventListener('mouseout',()=> this.relax(), {passive: true})
-      }
-    })
+  private pushHolder(items: HTMLCollection): void {
+    for (let i = 0; i < items.length; i++) {
+      const item = items.item(i)
+      item.addEventListener('mouseover',()=> this.hold(), {passive: true})
+      item.addEventListener('mouseout',()=> this.relax(), {passive: true})
+    }
   }
 
   private pushHolders(): void {
-    this.pushHolder(document.querySelectorAll(this.attention))
+    this.pushHolder(document.getElementsByTagName('a'));
+    this.pushHolder(document.getElementsByTagName('input'));
+    this.pushHolder(document.getElementsByTagName('button'));
+    this.pushHolder(document.getElementsByClassName('code-header'));
+    this.pushHolder(document.getElementsByClassName('gt-user-inner'));
+    this.pushHolder(document.getElementsByClassName('gt-header-textarea'));
   }
 
   constructor() {
-    this.effecter.transform = 'translate(-50%, -50%) scale(0)'
-    this.effecter.opacity = '1'
+    document.querySelector('header').addEventListener('mouseenter', ()=> this.ishead = true, {passive: true});
+    document.querySelector('header').addEventListener('mouseout', ()=> this.ishead = false, {passive: true});
     window.addEventListener('mousemove', mouse => this.reset(mouse), {passive: true})
     window.addEventListener('click', mouse => this.Aeffect(mouse), {passive: true})
     this.pushHolders()
-    const observer = new MutationObserver(this.pushHolders.bind(this))
-    observer.observe(document, {childList: true, subtree: true})
-  }
-}
-
-class slides {
-  nav: HTMLElement = document.querySelector('nav')
-  button: HTMLElement = this.nav.querySelector('.navBtnIcon')
-  closeSearch: boolean = false
-
-  private relabel(): void {
-    if (this.nav === undefined) {
-      this.nav = document.querySelector('nav')
-    }
-    let navs = this.nav.querySelectorAll('.navItem'),
-        mayLen : number = 0,
-        may : HTMLElement;
-    navs.forEach((item)=>{
-      let now = item as HTMLElement,
-          link = now.querySelector('a') as HTMLAnchorElement
-      if (link !== null) {
-        let href = link.href
-        now.classList.remove('active')
-        if (href.length > mayLen && document.URL.match(href) !== null) {
-          mayLen = href.length;
-          may = now;
-        }
-      }
-    })
-    if (may !== null) {
-      may.classList.add('active')
-    }
-  }
-
-  constructor() {
-    this.button.addEventListener('mousedown',()=>{
-      if (document.querySelector('.search')) {
-        this.closeSearch = true
-      }
-    })
-    this.button.onclick = ()=>{
-      if (this.closeSearch) {
-        this.closeSearch = false
-      } else if (this.nav.classList[0] === 'expanded') {
-        this.nav.classList.remove('expanded')
-      } else {
-        this.nav.classList.add('expanded')
-      }
-    }
-    document.addEventListener('pjax:success', this.relabel)
-    window.onload = this.relabel.bind(this);
+    const observer = new MutationObserver(this.pushHolders.bind(this));
+    observer.observe(document, {childList: true, subtree: true});
   }
 }
 
 let index = new indexs()
 let code = new codes()
 let cursor = new cursors()
-new slides()
 new canvasDust('canvas-dust')

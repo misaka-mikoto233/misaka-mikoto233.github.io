@@ -107,16 +107,25 @@ window.addEventListener('DOMContentLoaded', ()=>{
     }
   };
   const searchFunc = ()=>{
-    document.querySelector('.search-popup').innerHTML = '<div id="loading"><p>Loading...</p></div>';
+    document.querySelector('.popup').innerHTML = '<div id="loading"><p>Loading...</p></div>';
     fetchData();
   };
   const onPopupClose = ()=>{
-    document.querySelector('.search-popup').classList.remove('open');
+    if (cursor.ishead === false) {
+      cursor.relax();
+    }
+    document.querySelector('main').classList.remove('overlay');
+    document.getElementById('canvas-dust').classList.remove('overlay');
+    document.querySelector('.popup').classList.remove('open');
+    document.querySelector('.search-pop-overlay').style.maxHeight = '0px';
   };
   const proceedSearch = ()=>{
-    document.querySelector('.search-popup').classList.add('open');
+    document.querySelector('main').classList.add('overlay');
+    document.getElementById('canvas-dust').classList.add('overlay');
+    document.querySelector('.search-pop-overlay').style.maxHeight = '2000px';
+    document.querySelector('.popup').classList.add('open');
     if (isfetched === true) {
-      document.querySelector('.search-popup').innerHTML = "<div id='search-result'></div>";
+      document.querySelector('.popup').innerHTML = "<div id='search-result'></div>";
       document.getElementById('search-result').innerHTML='';
     } else {
       searchFunc();
@@ -259,37 +268,28 @@ window.addEventListener('DOMContentLoaded', ()=>{
       }
     });
   }
-  const StartSearch = ()=>{
-    document.querySelector('.navContent').classList.add('search');
-    document.querySelector('#search-input').placeholder = '键入以进行';
-    if (isfetched === false) {
-      searchFunc();
-    }
-  }
+
   const EscapeSearch = ()=>{
-    document.querySelector('.navContent').classList.remove('search');
     document.removeEventListener('mouseup',EscapeSearch);
     wait = false;
     onPopupClose();
     document.querySelector('#search-input').value = '';
   }
   document.querySelector("#search-input").addEventListener('keyup', ()=>{
-    document.querySelector('.navContent').classList.add('search');
-    document.querySelector('.navContent').classList.remove('moved');
     inputEventFunction();
   });
   document.querySelector('#search-input').addEventListener('focus', ()=>{
-    StartSearch();
-  });
-  document.querySelector('#search-input').addEventListener('click', ()=>{
-    StartSearch();
+    document.querySelector('#search-input').placeholder = '键入以进行';
+    if (isfetched === false) {
+      searchFunc();
+    }
   });
   document.querySelector('#search-input').addEventListener('blur', ()=>{
     document.querySelector('#search-input').placeholder = '数据检索';
-    document.querySelector('.navContent').classList.remove('search');
-    document.querySelector('.navContent').classList.add('moved');
-    document.addEventListener('mouseup', EscapeSearch);
+    document.addEventListener('mouseup',EscapeSearch);
   });
+  document.querySelector('.search-pop-overlay').addEventListener('click', EscapeSearch);
+  window.addEventListener('pjax:success', EscapeSearch);
   window.addEventListener('keyup', event =>{
     if (event.which === 27) {
       EscapeSearch();
